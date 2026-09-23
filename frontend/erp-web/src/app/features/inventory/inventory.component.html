@@ -1,0 +1,287 @@
+<div class="inventory-container">
+  <!-- Encabezado de Página -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Catálogo y Control de Inventario</h1>
+      <p class="page-subtitle">Gestiona productos, monitorea existencias críticas y realiza ajustes de almacén.</p>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-primary" (click)="openCreateModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Nuevo Producto
+      </button>
+    </div>
+  </div>
+
+  <!-- Alertas de estado -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+  </div>
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Métricas y KPIs de Inventario -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon icon-blue">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7.5 4.27 9 5.15M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
+      </div>
+      <div>
+        <div class="kpi-label">Productos Activos</div>
+        <div class="kpi-value">{{ summary.totalProducts }}</div>
+      </div>
+    </div>
+
+    <div class="kpi-card" [class.kpi-alert]="summary.lowStockAlerts > 0">
+      <div class="kpi-icon icon-red">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div>
+        <div class="kpi-label">Alertas de Stock Bajo</div>
+        <div class="kpi-value text-red">{{ summary.lowStockAlerts }}</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon icon-emerald">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+      </div>
+      <div>
+        <div class="kpi-label">Unidades en Almacén</div>
+        <div class="kpi-value">{{ summary.totalUnitsInStock }}</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon icon-purple">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      </div>
+      <div>
+        <div class="kpi-label">Valorización Total</div>
+        <div class="kpi-value">${{ summary.totalValuation | number:'1.2-2' }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra de Filtros y Búsqueda -->
+  <div class="filters-card">
+    <div class="search-input-wrapper">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Buscar por código SKU o nombre del producto..."
+        [(ngModel)]="searchTerm"
+        (input)="onSearch()"
+      />
+    </div>
+
+    <div class="filter-controls">
+      <select class="form-control select-category" [(ngModel)]="selectedCategoryId" (change)="onFilterChange()">
+        <option [ngValue]="undefined">Todas las Categorías</option>
+        <option *ngFor="let cat of categories" [ngValue]="cat.id">{{ cat.name }}</option>
+      </select>
+
+      <button
+        class="btn"
+        [ngClass]="lowStockOnly ? 'btn-danger' : 'btn-secondary'"
+        (click)="toggleLowStock()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        {{ lowStockOnly ? 'Mostrando solo bajo stock' : 'Filtrar por Stock Bajo' }}
+      </button>
+
+      <button class="btn btn-secondary" (click)="loadProducts()" title="Refrescar lista">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabla de Productos -->
+  <div class="table-container">
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Consultando base de datos de inventario...</p>
+    </div>
+
+    <table *ngIf="!isLoading && products.length > 0" class="data-table">
+      <thead>
+        <tr>
+          <th>SKU / Código</th>
+          <th>Nombre del Producto</th>
+          <th>Categoría</th>
+          <th>Precio Venta</th>
+          <th>Precio Costo</th>
+          <th>Stock Actual</th>
+          <th>Estado</th>
+          <th class="text-right">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let product of products" [class.row-alert]="product.isLowStock">
+          <td class="font-mono font-medium">{{ product.sku }}</td>
+          <td>
+            <div class="product-name">{{ product.name }}</div>
+            <div class="product-desc">{{ product.description }}</div>
+          </td>
+          <td>
+            <span class="badge badge-info">{{ product.category?.name || 'General' }}</span>
+          </td>
+          <td class="font-semibold text-emerald">${{ product.price | number:'1.2-2' }}</td>
+          <td class="text-muted">${{ (product.costPrice || 0) | number:'1.2-2' }}</td>
+          <td>
+            <div class="stock-cell">
+              <span class="stock-number" [class.text-danger]="product.isLowStock">{{ product.stockQuantity }}</span>
+              <span class="stock-limit text-muted">/ min {{ product.minStockAlert }}</span>
+            </div>
+          </td>
+          <td>
+            <span *ngIf="product.isLowStock" class="badge badge-danger">Stock Crítico</span>
+            <span *ngIf="!product.isLowStock" class="badge badge-success">Óptimo</span>
+          </td>
+          <td class="text-right actions-cell">
+            <button class="btn btn-secondary btn-sm" (click)="openStockModal(product)" title="Ajustar Stock">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              Ajustar
+            </button>
+            <button class="btn btn-secondary btn-sm" (click)="openEditModal(product)" title="Editar Producto">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+            </button>
+            <button class="btn btn-secondary btn-sm text-danger" (click)="deleteProduct(product)" title="Desactivar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div *ngIf="!isLoading && products.length === 0" class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/></svg>
+      <h3>No se encontraron productos</h3>
+      <p>Prueba ajustando los filtros de búsqueda o registra un nuevo producto.</p>
+    </div>
+
+    <!-- Paginación -->
+    <div class="pagination-footer" *ngIf="totalPages > 1">
+      <div class="pagination-info">
+        Mostrando {{ products.length }} de {{ totalElements }} productos registrados
+      </div>
+      <div class="pagination-buttons">
+        <button class="btn btn-secondary btn-sm" [disabled]="currentPage === 0" (click)="goToPage(currentPage - 1)">
+          Anterior
+        </button>
+        <span class="pagination-page">Página {{ currentPage + 1 }} de {{ totalPages }}</span>
+        <button class="btn btn-secondary btn-sm" [disabled]="currentPage >= totalPages - 1" (click)="goToPage(currentPage + 1)">
+          Siguiente
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Crear / Editar Producto -->
+  <div *ngIf="isProductModalOpen" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>{{ isEditing ? 'Editar Producto' : 'Registrar Nuevo Producto' }}</h3>
+        <button class="modal-close" (click)="closeProductModal()">&times;</button>
+      </div>
+
+      <form (ngSubmit)="saveProduct()">
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">Código SKU / Barras *</label>
+            <input type="text" class="form-control" [(ngModel)]="productForm.sku" name="sku" placeholder="Ej: LAP-DELL-01" required />
+          </div>
+          <div class="form-group flex-2">
+            <label class="form-label">Nombre del Producto *</label>
+            <input type="text" class="form-control" [(ngModel)]="productForm.name" name="name" placeholder="Ej: Laptop Dell XPS 15" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Descripción</label>
+          <textarea class="form-control" rows="2" [(ngModel)]="productForm.description" name="description" placeholder="Especificaciones principales..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">Categoría *</label>
+            <select class="form-control" [(ngModel)]="productForm.categoryId" name="categoryId" required>
+              <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">Precio de Venta ($) *</label>
+            <input type="number" step="0.01" class="form-control" [(ngModel)]="productForm.price" name="price" required />
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">Precio de Costo ($)</label>
+            <input type="number" step="0.01" class="form-control" [(ngModel)]="productForm.costPrice" name="costPrice" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1" *ngIf="!isEditing">
+            <label class="form-label">Stock Inicial *</label>
+            <input type="number" class="form-control" [(ngModel)]="productForm.stockQuantity" name="stockQuantity" min="0" />
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">Umbral Alerta Stock Mínimo *</label>
+            <input type="number" class="form-control" [(ngModel)]="productForm.minStockAlert" name="minStockAlert" min="1" required />
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeProductModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">{{ isEditing ? 'Guardar Cambios' : 'Registrar Producto' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Ajuste Rápido de Stock -->
+  <div *ngIf="isStockModalOpen" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Ajuste de Stock: {{ stockTargetProduct?.name }}</h3>
+        <button class="modal-close" (click)="closeStockModal()">&times;</button>
+      </div>
+
+      <div class="stock-target-info">
+        <div><strong>SKU:</strong> {{ stockTargetProduct?.sku }}</div>
+        <div><strong>Stock Actual:</strong> {{ stockTargetProduct?.stockQuantity }} unidades</div>
+      </div>
+
+      <form (ngSubmit)="submitStockAdjustment()">
+        <div class="form-group">
+          <label class="form-label">Tipo de Movimiento</label>
+          <select class="form-control" [(ngModel)]="stockAdjustmentForm.type" name="type" required>
+            <option value="IN">Entrada (+) Ingreso de mercadería / compra</option>
+            <option value="OUT">Salida (-) Retiro / merma / despacho</option>
+            <option value="ADJUSTMENT">Ajuste Directo (=) Fijar nuevo conteo total</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Cantidad a mover o nuevo total</label>
+          <input type="number" class="form-control" [(ngModel)]="stockAdjustmentForm.quantity" name="quantity" min="1" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Motivo del Ajuste</label>
+          <input type="text" class="form-control" [(ngModel)]="stockAdjustmentForm.reason" name="reason" placeholder="Ej: Recepción de pedido de proveedor, merma física..." />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Referencia / Código de Documento</label>
+          <input type="text" class="form-control" [(ngModel)]="stockAdjustmentForm.referenceId" name="referenceId" placeholder="Ej: FACT-1029, GUIA-456" />
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeStockModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Confirmar Movimiento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

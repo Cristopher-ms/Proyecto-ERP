@@ -1,0 +1,46 @@
+name: Deploy Backend to Azure Container Apps
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'backend/inventory-service/**'
+      - '.github/workflows/deploy-backend-azure.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del Repositorio
+        uses: actions/checkout@v4
+
+      - name: Iniciar sesión en Azure (Service Principal)
+        uses: azure/login@v2
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Iniciar sesión en Azure Container Registry (ACR)
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
+        run: |
+          az acr login --name ${{ secrets.ACR_NAME }}
+
+      - name: Construir y publicar imagen Docker en ACR
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
+        run: |
+          IMAGE_TAG="${{ secrets.ACR_NAME }}.azurecr.io/inventory-service:${{ github.sha }}"
+          docker build -t $IMAGE_TAG -t "${{ secrets.ACR_NAME }}.azurecr.io/inventory-service:latest" backend/inventory-service
+          docker push $IMAGE_TAG
+          docker push "${{ secrets.ACR_NAME }}.azurecr.io/inventory-service:latest"
+
+      - name: Desplegar en Azure Container Apps
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          imageToDeploy: ${{ secrets.ACR_NAME }}.azurecr.io/inventory-service:${{ github.sha }}
+          containerAppName: app-inventory-service
+          resourceGroup: rg-erp-prod
+          containerAppEnvironment: env-erp-prod

@@ -1,0 +1,42 @@
+# Archivos compilados y paquetes de Java
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Node y Angular
+node_modules/
+dist/
+tmp/
+out-tsc/
+.angular/
+.npm/
+
+# IDEs y Editores
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# Base de datos y volúmenes Docker locales
+postgres_data/
+rabbitmq_data/
+*.db
+
+# Archivos de entorno y credenciales sensibles
+.env
+.env.local
+*.pem
+*.key
