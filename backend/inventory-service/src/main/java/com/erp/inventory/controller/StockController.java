@@ -15,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/inventory")
-@CrossOrigin(origins = "*", allowedHeaders = "*")
+@CrossOrigin(originPatterns = "*", allowedHeaders = "*")
 @RequiredArgsConstructor
 @Tag(name = "Movimientos de Stock", description = "Endpoints para registro de entradas, salidas y auditoría de inventario")
 public class StockController {
