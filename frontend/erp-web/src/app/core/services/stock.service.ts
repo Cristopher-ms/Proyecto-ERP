@@ -3,13 +3,14 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { StockAdjustmentRequest, StockMovement } from '../models/stock-movement.model';
 import { PaginatedResponse } from '../models/paginated-response.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class StockService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:8082/api/v1/inventory';
+  private readonly apiUrl = `${environment.apiUrl}/inventory`;
 
   adjustStock(request: StockAdjustmentRequest): Observable<StockMovement> {
     return this.http.post<StockMovement>(`${this.apiUrl}/adjust`, request);

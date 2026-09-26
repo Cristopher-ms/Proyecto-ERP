@@ -4,13 +4,14 @@ import { Observable } from 'rxjs';
 import { Product, ProductRequest } from '../models/product.model';
 import { PaginatedResponse } from '../models/paginated-response.model';
 import { InventorySummary } from '../models/inventory-summary.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ProductService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:8082/api/v1/products';
+  private readonly apiUrl = `${environment.apiUrl}/products`;
 
   getProducts(
     search?: string,
