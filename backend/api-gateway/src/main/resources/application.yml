@@ -1,0 +1,62 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+      routes:
+        # 1. Enrutamiento hacia Auth Service
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/auth/**
+
+        # 2. Enrutamiento hacia Inventory Service
+        - id: inventory-service
+          uri: ${INVENTORY_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/inventory/**, /api/v1/categories/**, /api/v1/products/**
+
+        # 3. Enrutamiento hacia Orders Service (Fase 3)
+        - id: orders-service
+          uri: ${ORDERS_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/orders/**, /api/v1/customers/**
+
+      # Configuración centralizada de CORS para todo el ecosistema
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns:
+              - "*"
+            allowedMethods:
+              - "GET"
+              - "POST"
+              - "PUT"
+              - "DELETE"
+              - "OPTIONS"
+              - "HEAD"
+              - "PATCH"
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+            maxAge: 3600
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    org.springframework.web: INFO
