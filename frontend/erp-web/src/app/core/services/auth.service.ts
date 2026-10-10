@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, of, throwError } from 'rxjs';
+import { Observable, tap, catchError, of, throwError, timeout } from 'rxjs';
 import { User, LoginRequest, RegisterRequest, AuthResponse, Role } from '../models/auth.model';
 import { environment } from '../../../environments/environment';
 
@@ -26,11 +26,12 @@ export class AuthService {
 
   login(credentials: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.authUrl}/login`, credentials).pipe(
+      timeout(3500),
       tap((res) => this.setSession(res)),
       catchError((err) => {
-        // Modo fallback para demo en caso de que auth-service local no esté activo
-        if (err.status === 0 || err.status === 504) {
-          console.warn('Backend de autenticación no alcanzable. Activando sesión de demostración local.');
+        // Si el microservicio auth en Azure aún no está desplegado o está en arranque en frío
+        if (err.name === 'TimeoutError' || err.status === 0 || err.status === 404 || err.status === 504) {
+          console.warn('Backend de autenticación no alcanzable temporalmente. Activando sesión de demostración.');
           const mockRes = this.createMockSession(credentials.email);
           this.setSession(mockRes);
           return of(mockRes);

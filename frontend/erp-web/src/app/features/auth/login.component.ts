@@ -38,7 +38,9 @@ export class LoginComponent {
       next: () => {
         this.isLoading = false;
         const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/inventory';
-        this.router.navigateByUrl(returnUrl);
+        this.router.navigateByUrl(returnUrl).catch(() => {
+          this.router.navigate(['/inventory']);
+        });
       },
       error: (err) => {
         this.isLoading = false;

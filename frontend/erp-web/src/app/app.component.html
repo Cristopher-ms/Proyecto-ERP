@@ -1,10 +1,6 @@
-<div *ngIf="isLoginPage()">
-  <router-outlet></router-outlet>
-</div>
-
-<div *ngIf="!isLoginPage()" class="app-layout">
+<div [class.app-layout]="!isLoginPage()">
   <!-- Barra Lateral (Sidebar) -->
-  <aside class="sidebar">
+  <aside *ngIf="!isLoginPage()" class="sidebar">
     <div class="sidebar-brand">
       <div class="brand-logo">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 17 4 4 4-4"/></svg>
@@ -60,9 +56,9 @@
   </aside>
 
   <!-- Contenedor Principal (Main Content) -->
-  <div class="main-wrapper">
+  <div [class.main-wrapper]="!isLoginPage()">
     <!-- Barra Superior (Navbar) -->
-    <header class="topbar">
+    <header *ngIf="!isLoginPage()" class="topbar">
       <div class="topbar-left">
         <span class="system-status">
           <span class="status-pulse"></span>
@@ -97,8 +93,8 @@
       </div>
     </header>
 
-    <!-- Enrutamiento Angular -->
-    <main class="content-area">
+    <!-- Enrutamiento Angular Único -->
+    <main [class.content-area]="!isLoginPage()">
       <router-outlet></router-outlet>
     </main>
   </div>

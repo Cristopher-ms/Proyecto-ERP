@@ -16,7 +16,7 @@ export class AppComponent {
   private readonly router = inject(Router);
 
   isLoginPage(): boolean {
-    return this.router.url.includes('/login');
+    return this.router.url.includes('/login') || !this.authService.isAuthenticated();
   }
 
   getUserInitials(): string {

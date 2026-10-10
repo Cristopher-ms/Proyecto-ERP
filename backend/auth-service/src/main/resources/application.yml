@@ -6,17 +6,30 @@ server:
 spring:
   application:
     name: auth-service
-  profiles:
-    active: dev
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:postgresql://localhost:5432/erp_auth_db}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:erp_user}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:erp_password}}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: ${HIBERNATE_DDL_AUTO:update}
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          lob:
+            non_contextual_creation: true
   jackson:
     serialization:
       write-dates-as-timestamps: false
 
 # Configuración JWT (Firma HMAC SHA-256)
 jwt:
-  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-  expiration-ms: 86400000        # 24 horas para tokens de acceso
-  refresh-expiration-ms: 604800000 # 7 días para refresh token
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}        # 24 horas para tokens de acceso
+  refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000} # 7 días para refresh token
 
 # Documentación OpenAPI / Swagger
 springdoc:
