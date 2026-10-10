@@ -125,7 +125,7 @@
             <div class="product-desc">{{ product.description }}</div>
           </td>
           <td>
-            <span class="badge badge-info">{{ product.category?.name || 'General' }}</span>
+            <span class="badge badge-info">{{ product.category.name || 'General' }}</span>
           </td>
           <td class="font-semibold text-emerald">${{ product.price | number:'1.2-2' }}</td>
           <td class="text-muted">${{ (product.costPrice || 0) | number:'1.2-2' }}</td>
