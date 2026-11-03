@@ -1,0 +1,459 @@
+<div class="orders-container">
+  <!-- Encabezado del Módulo -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Gestión de Ventas & Pedidos</h1>
+      <p class="page-subtitle">Punto de Venta (POS), Facturación y Emisión Asíncrona de Eventos RabbitMQ</p>
+    </div>
+    <div class="header-actions">
+      <div class="tab-pill-group">
+        <button
+          type="button"
+          class="btn-tab"
+          [class.active]="activeTab === 'list'"
+          (click)="activeTab = 'list'">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+          Historial de Pedidos
+        </button>
+        <button
+          type="button"
+          class="btn-tab btn-tab-primary"
+          [class.active]="activeTab === 'new'"
+          (click)="activeTab = 'new'">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+          Nueva Venta (POS)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alertas de estado -->
+  <div *ngIf="successMessage" class="alert-success">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+    <span>{{ successMessage }}</span>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert-error">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <!-- Tarjetas KPI de Resumen de Ventas -->
+  <div class="kpi-grid" *ngIf="orderService.salesSummary() as sum">
+    <div class="kpi-card">
+      <div class="kpi-icon icon-blue">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+      </div>
+      <div>
+        <div class="kpi-label">Ventas Históricas</div>
+        <div class="kpi-value">${{ sum.totalSalesAmount | number:'1.2-2' }}</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon icon-green">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+        </svg>
+      </div>
+      <div>
+        <div class="kpi-label">Pedidos Concretados</div>
+        <div class="kpi-value">{{ sum.totalOrders }}</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon icon-purple">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+      </div>
+      <div>
+        <div class="kpi-label">Ventas de Hoy</div>
+        <div class="kpi-value">${{ sum.todaySalesAmount | number:'1.2-2' }}</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon icon-amber">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <div>
+        <div class="kpi-label">Ticket Promedio</div>
+        <div class="kpi-value">${{ sum.averageTicket | number:'1.2-2' }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PESTAÑA 1: HISTORIAL DE PEDIDOS -->
+  <div *ngIf="activeTab === 'list'" class="tab-content">
+    <div class="table-card">
+      <div class="table-toolbar">
+        <div class="search-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="Buscar por correlativo o cliente..."
+            [(ngModel)]="searchFilter"
+            (keyup.enter)="loadOrders()"
+          />
+        </div>
+
+        <div class="filter-group">
+          <select [(ngModel)]="statusFilter" (change)="loadOrders()" class="select-control">
+            <option value="">Todos los Estados</option>
+            <option value="CONFIRMED">Confirmado</option>
+            <option value="PENDING">Pendiente</option>
+            <option value="SHIPPED">Enviado</option>
+            <option value="CANCELLED">Cancelado</option>
+          </select>
+          <button (click)="loadOrders()" class="btn-refresh" title="Actualizar lista">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabla de órdenes -->
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>N° Pedido</th>
+              <th>Fecha</th>
+              <th>Cliente</th>
+              <th>Método de Pago</th>
+              <th>Productos</th>
+              <th>Total (USD)</th>
+              <th>Estado</th>
+              <th class="text-right">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let order of orderService.orders()">
+              <td class="font-bold text-primary">{{ order.orderNumber }}</td>
+              <td>{{ order.createdAt | date:'short' }}</td>
+              <td>
+                <div class="customer-cell">
+                  <span class="cust-name">{{ order.customer?.fullName }}</span>
+                  <span class="cust-doc">{{ order.customer?.documentType }}: {{ order.customer?.documentNumber }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="badge badge-payment">{{ order.paymentMethod }}</span>
+              </td>
+              <td>{{ order.items?.length || 0 }} ítem(s)</td>
+              <td class="font-bold">${{ order.totalAmount | number:'1.2-2' }}</td>
+              <td>
+                <span class="badge" [ngClass]="{
+                  'badge-success': order.status === 'CONFIRMED' || order.status === 'SHIPPED',
+                  'badge-warning': order.status === 'PENDING',
+                  'badge-danger': order.status === 'CANCELLED'
+                }">
+                  {{ order.status }}
+                </span>
+              </td>
+              <td class="text-right">
+                <button (click)="viewOrderDetail(order)" class="btn-action" title="Ver detalle y comprobante">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  Detalle
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="orderService.orders().length === 0">
+              <td colspan="8" class="text-center py-4 text-muted">
+                No hay órdenes registradas. ¡Haz clic en "Nueva Venta (POS)" para emitir tu primer pedido!
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PESTAÑA 2: NUEVA VENTA (POS) -->
+  <div *ngIf="activeTab === 'new'" class="tab-content pos-layout">
+    <!-- Columna Izquierda: Catálogo de productos disponibles -->
+    <div class="pos-catalog-column">
+      <div class="card-section">
+        <div class="section-title-bar">
+          <h3>1. Selecciona Productos del Catálogo</h3>
+          <span class="badge badge-info">{{ availableProducts().length }} disponibles</span>
+        </div>
+
+        <div class="product-cards-grid">
+          <div *ngFor="let prod of availableProducts()" class="product-pos-card" [class.out-of-stock]="prod.stockQuantity <= 0">
+            <div class="prod-badge-sku">{{ prod.sku }}</div>
+            <div class="prod-title">{{ prod.name }}</div>
+            <div class="prod-category">{{ prod.category?.name }}</div>
+
+            <div class="prod-footer">
+              <div class="prod-pricing">
+                <span class="price-val">${{ prod.price | number:'1.2-2' }}</span>
+                <span class="stock-val" [class.low-stock]="prod.stockQuantity <= prod.minStockAlert">
+                  Stock: {{ prod.stockQuantity }}
+                </span>
+              </div>
+              <button
+                type="button"
+                class="btn-add-cart"
+                [disabled]="prod.stockQuantity <= 0"
+                (click)="addToCart(prod)">
+                + Agregar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Columna Derecha: Resumen de Venta / Carrito -->
+    <div class="pos-cart-column">
+      <div class="card-section cart-card">
+        <div class="section-title-bar">
+          <h3>2. Orden de Venta Actual</h3>
+          <button *ngIf="cart().length > 0" class="btn-clear" (click)="clearCart()">Vaciar</button>
+        </div>
+
+        <!-- Selector de Cliente -->
+        <div class="form-group mb-3">
+          <div class="flex-between">
+            <label class="form-label">Cliente Corporativo</label>
+            <button type="button" class="btn-link" (click)="showCustomerModal = true">+ Nuevo Cliente</button>
+          </div>
+          <select [(ngModel)]="selectedCustomerId" class="form-control select-customer">
+            <option *ngFor="let c of orderService.customers()" [value]="c.id">
+              {{ c.fullName }} ({{ c.documentType }}: {{ c.documentNumber }})
+            </option>
+          </select>
+        </div>
+
+        <!-- Método de Pago -->
+        <div class="form-group mb-3">
+          <label class="form-label">Método de Pago</label>
+          <div class="payment-pills">
+            <label class="payment-pill" [class.active]="selectedPaymentMethod === 'TRANSFER'">
+              <input type="radio" [(ngModel)]="selectedPaymentMethod" value="TRANSFER" />
+              <span>Transferencia</span>
+            </label>
+            <label class="payment-pill" [class.active]="selectedPaymentMethod === 'CREDIT_CARD'">
+              <input type="radio" [(ngModel)]="selectedPaymentMethod" value="CREDIT_CARD" />
+              <span>Tarjeta</span>
+            </label>
+            <label class="payment-pill" [class.active]="selectedPaymentMethod === 'CASH'">
+              <input type="radio" [(ngModel)]="selectedPaymentMethod" value="CASH" />
+              <span>Efectivo</span>
+            </label>
+            <label class="payment-pill" [class.active]="selectedPaymentMethod === 'YAPE_PLIN'">
+              <input type="radio" [(ngModel)]="selectedPaymentMethod" value="YAPE_PLIN" />
+              <span>Yape / Plin</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Lista de ítems en carrito -->
+        <div class="cart-items-wrapper">
+          <div *ngIf="cart().length === 0" class="empty-cart">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+            <p>El carrito de venta está vacío.</p>
+            <span class="hint">Selecciona productos a la izquierda para armar el pedido.</span>
+          </div>
+
+          <div *ngFor="let item of cart(); let idx = index" class="cart-item-row">
+            <div class="item-info">
+              <div class="item-name">{{ item.productName }}</div>
+              <div class="item-meta">{{ item.productSku }} &bull; ${{ item.unitPrice | number:'1.2-2' }} c/u</div>
+            </div>
+
+            <div class="item-qty-controls">
+              <button (click)="updateQuantity(idx, -1)" class="btn-qty">-</button>
+              <span class="qty-num">{{ item.quantity }}</span>
+              <button (click)="updateQuantity(idx, 1)" class="btn-qty">+</button>
+            </div>
+
+            <div class="item-subtotal">
+              ${{ (item.unitPrice * item.quantity) | number:'1.2-2' }}
+            </div>
+
+            <button (click)="removeFromCart(idx)" class="btn-remove-item" title="Eliminar ítem">
+              &times;
+            </button>
+          </div>
+        </div>
+
+        <!-- Notas de la Orden -->
+        <div class="form-group mt-3">
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Observaciones de despacho / notas (opcional)..."
+            [(ngModel)]="orderNotes"
+          />
+        </div>
+
+        <!-- Desglose de Totales -->
+        <div class="cart-totals-breakdown" *ngIf="cart().length > 0">
+          <div class="total-row">
+            <span>Subtotal</span>
+            <span>${{ getCartSubtotal() | number:'1.2-2' }}</span>
+          </div>
+          <div class="total-row">
+            <span>Impuesto IGV / IVA (18%)</span>
+            <span>${{ getCartTax() | number:'1.2-2' }}</span>
+          </div>
+          <div class="total-row grand-total">
+            <span>Total a Cobrar</span>
+            <span>${{ getCartTotal() | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <!-- Botón de Confirmación -->
+        <button
+          type="button"
+          class="btn-submit-order"
+          [disabled]="cart().length === 0 || orderService.isLoading()"
+          (click)="submitOrder()">
+          <span *ngIf="!orderService.isLoading()">Emitir Pedido & Descontar Stock</span>
+          <span *ngIf="orderService.isLoading()">Procesando en Azure Cloud...</span>
+        </button>
+
+        <div class="event-badge-hint">
+          <span class="pulse-dot"></span>
+          <span>Desencadena evento asíncrono para Kardex en <code>inventory-service</code></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DETALLE DE ORDEN -->
+  <div *ngIf="selectedOrder() as order" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h2>Comprobante de Venta: {{ order.orderNumber }}</h2>
+          <span class="text-muted">Fecha: {{ order.createdAt | date:'medium' }}</span>
+        </div>
+        <button class="btn-close" (click)="closeDetailModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="order-detail-meta">
+          <div class="meta-block">
+            <strong>Cliente:</strong>
+            <p>{{ order.customer?.fullName }}</p>
+            <span class="text-muted">{{ order.customer?.documentType }}: {{ order.customer?.documentNumber }}</span>
+          </div>
+          <div class="meta-block">
+            <strong>Método de Pago:</strong>
+            <p><span class="badge badge-payment">{{ order.paymentMethod }}</span></p>
+          </div>
+          <div class="meta-block">
+            <strong>Vendedor:</strong>
+            <p>{{ order.sellerEmail }}</p>
+          </div>
+        </div>
+
+        <table class="modal-table mt-3">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>SKU</th>
+              <th>Precio</th>
+              <th>Cantidad</th>
+              <th class="text-right">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let it of order.items">
+              <td>{{ it.productName }}</td>
+              <td><code>{{ it.productSku }}</code></td>
+              <td>${{ it.unitPrice | number:'1.2-2' }}</td>
+              <td>{{ it.quantity }}</td>
+              <td class="text-right font-bold">${{ it.subtotal | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" class="text-right">Subtotal:</td>
+              <td class="text-right">${{ order.subtotal | number:'1.2-2' }}</td>
+            </tr>
+            <tr>
+              <td colspan="4" class="text-right">Impuesto IGV (18%):</td>
+              <td class="text-right">${{ order.taxAmount | number:'1.2-2' }}</td>
+            </tr>
+            <tr class="modal-grand-total">
+              <td colspan="4" class="text-right font-bold">TOTAL PAGADO:</td>
+              <td class="text-right font-bold text-primary">${{ order.totalAmount | number:'1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeDetailModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NUEVO CLIENTE RÁPIDO -->
+  <div *ngIf="showCustomerModal" class="modal-backdrop">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3>Registrar Nuevo Cliente</h3>
+        <button class="btn-close" (click)="showCustomerModal = false">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group mb-2">
+          <label class="form-label">Nombre / Razón Social *</label>
+          <input type="text" [(ngModel)]="newCustomer.firstName" class="form-control" placeholder="Ej. Minera Los Andes" />
+        </div>
+        <div class="form-group mb-2">
+          <label class="form-label">Apellidos / Tipo Empresa *</label>
+          <input type="text" [(ngModel)]="newCustomer.lastName" class="form-control" placeholder="Ej. S.A.C." />
+        </div>
+        <div class="form-group mb-2">
+          <label class="form-label">Tipo de Documento</label>
+          <select [(ngModel)]="newCustomer.documentType" class="form-control">
+            <option value="RUC">RUC</option>
+            <option value="DNI">DNI</option>
+            <option value="PASSPORT">Pasaporte</option>
+          </select>
+        </div>
+        <div class="form-group mb-2">
+          <label class="form-label">Número de Documento *</label>
+          <input type="text" [(ngModel)]="newCustomer.documentNumber" class="form-control" placeholder="20601234567" />
+        </div>
+        <div class="form-group mb-2">
+          <label class="form-label">Teléfono</label>
+          <input type="text" [(ngModel)]="newCustomer.phone" class="form-control" placeholder="+51 987 654 321" />
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="showCustomerModal = false">Cancelar</button>
+        <button class="btn-primary" (click)="saveCustomer()">Guardar y Usar</button>
+      </div>
+    </div>
+  </div>
+</div>

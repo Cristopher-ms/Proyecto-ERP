@@ -79,4 +79,13 @@ public class ProductController {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/deduct-stock")
+    @Operation(summary = "Descontar stock por venta o salida de almacén (Kardex)")
+    public ResponseEntity<ProductResponse> deductStock(
+            @PathVariable Long id,
+            @Valid @RequestBody com.erp.inventory.dto.DeductStockRequest request
+    ) {
+        return ResponseEntity.ok(productService.deductStock(id, request));
+    }
 }
