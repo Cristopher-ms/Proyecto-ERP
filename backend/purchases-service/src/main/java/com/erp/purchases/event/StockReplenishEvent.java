@@ -15,4 +15,11 @@ public class StockReplenishEvent implements Serializable {
     private List<StockReplenishItemEvent> items;
     private BigDecimal totalAmount;
     private LocalDateTime receivedAt;
+
+    public StockReplenishEvent(String purchaseNumber, Long supplierId, List<StockReplenishItemEvent> items) {
+        this.purchaseNumber = purchaseNumber;
+        this.supplierId = supplierId;
+        this.items = items;
+        this.receivedAt = LocalDateTime.now();
+    }
 }

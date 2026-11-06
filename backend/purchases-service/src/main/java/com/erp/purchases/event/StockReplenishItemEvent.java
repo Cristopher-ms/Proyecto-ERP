@@ -9,4 +9,10 @@ public class StockReplenishItemEvent implements Serializable {
     private String productSku;
     private Integer quantity;
     private String purchaseNumber;
+
+    public StockReplenishItemEvent(Long productId, String productSku, Integer quantity) {
+        this.productId = productId;
+        this.productSku = productSku;
+        this.quantity = quantity;
+    }
 }

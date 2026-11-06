@@ -42,7 +42,7 @@ public class InventoryServiceClient {
     }
 
     // Fallback resiliente: si inventory-service no responde, el flujo continúa sin bloquear
-    public void addStockFallback(Long productId, int quantity, String purchaseNumber, Exception ex) {
+    public void addStockFallback(Long productId, int quantity, String purchaseNumber, Throwable ex) {
         log.warn("[Circuit Breaker ABIERTO] No se pudo contactar inventory-service para producto ID {}. " +
                 "Reposición en cola para reintento. Error: {}", productId, ex.getMessage());
     }

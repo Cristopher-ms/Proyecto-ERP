@@ -1,26 +1,32 @@
-# ── Stage 1: Build ───────────────────────────────────────────────────────────
+# Etapa 1: Build con Maven
 FROM maven:3.9.8-eclipse-temurin-21-alpine AS builder
-WORKDIR /build
-COPY pom.xml .
-RUN mvn dependency:go-offline -q
-COPY src ./src
-RUN mvn package -DskipTests -q
+WORKDIR /app
 
-# ── Stage 2: Runtime ─────────────────────────────────────────────────────────
+# Cachear dependencias de Maven
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+
+# Compilar código fuente empaquetando JAR ejecutable
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# Etapa 2: Runtime ligero de producción
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
+# Crear usuario sin privilegios para seguridad empresarial
 RUN addgroup -S erpgroup && adduser -S erpuser -G erpgroup
+USER erpuser:erpgroup
 
-COPY --from=builder /build/target/*.jar app.jar
-RUN chown erpuser:erpgroup app.jar
+# Copiar el artefacto compilado
+COPY --from=builder /app/target/purchases-service-*.jar app.jar
 
-USER erpuser
-
+# Variables de entorno y puerto
+ENV PORT=8084
 EXPOSE 8084
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8084/actuator/health || exit 1
+# Sonda de salud y arranque
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:8084/actuator/health || exit 1
 
-ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", \
-            "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
