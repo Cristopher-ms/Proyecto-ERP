@@ -8,11 +8,11 @@ export interface Supplier {
   id:            number;
   companyName:   string;
   taxId:         string;
-  contactName:   string;
-  email:         string;
-  phone:         string;
-  address:       string;
-  country:       string;
+  contactName?:  string;
+  email?:        string;
+  phone?:        string;
+  address?:      string;
+  country?:      string;
   paymentTerms:  PaymentTerms;
   status:        SupplierStatus;
   notes?:        string;

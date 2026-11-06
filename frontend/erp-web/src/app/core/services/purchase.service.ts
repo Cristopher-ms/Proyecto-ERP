@@ -99,10 +99,23 @@ export class PurchaseService {
   }
 
   createSupplier(req: SupplierRequest): Observable<Supplier> {
+    const fallbackSupplier: Supplier = {
+      id: Date.now(),
+      companyName: req.companyName,
+      taxId: req.taxId,
+      contactName: req.contactName,
+      email: req.email,
+      phone: req.phone,
+      address: req.address,
+      country: req.country,
+      paymentTerms: req.paymentTerms,
+      status: 'ACTIVE',
+      notes: req.notes
+    };
     return this.http.post<Supplier>(`${this.baseUrl}/suppliers`, req).pipe(
       timeout(8000),
       tap(s => this.suppliers.update(list => [...list, s])),
-      catchError(() => of({ ...req, id: Date.now(), status: 'ACTIVE' as const }))
+      catchError(() => of(fallbackSupplier))
     );
   }
 
