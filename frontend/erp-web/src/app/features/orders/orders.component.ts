@@ -72,9 +72,14 @@ export class OrdersComponent implements OnInit {
   }
 
   loadProducts(): void {
-    this.productService.getProducts().subscribe((res: any) => {
-      const items = res.content ? res.content : res;
-      this.availableProducts.set(items);
+    this.productService.getProducts('', undefined, false, 0, 50).subscribe({
+      next: (res: any) => {
+        const items = res?.content ? res.content : (Array.isArray(res) ? res : []);
+        this.availableProducts.set(items);
+      },
+      error: (err) => {
+        console.warn('Error al cargar catálogo en POS:', err);
+      }
     });
   }
 
