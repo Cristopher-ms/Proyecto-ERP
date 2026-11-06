@@ -88,4 +88,13 @@ public class ProductController {
     ) {
         return ResponseEntity.ok(productService.deductStock(id, request));
     }
+
+    @PostMapping("/{id}/add-stock")
+    @Operation(summary = "Reabastecer stock por orden de compra o ingreso a almacén (Kardex)")
+    public ResponseEntity<ProductResponse> addStock(
+            @PathVariable Long id,
+            @Valid @RequestBody com.erp.inventory.dto.AddStockRequest request
+    ) {
+        return ResponseEntity.ok(productService.addStock(id, request));
+    }
 }

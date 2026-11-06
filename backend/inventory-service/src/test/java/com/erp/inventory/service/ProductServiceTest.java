@@ -128,4 +128,27 @@ class ProductServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("999");
     }
+
+    @Test
+    @DisplayName("Debe agregar stock correctamente e incrementar el inventario")
+    void shouldAddStockSuccessfully() {
+        when(productRepository.findById(100L)).thenReturn(Optional.of(testProduct));
+        when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(categoryService.mapToResponse(any())).thenReturn(
+                CategoryResponse.builder().id(1L).name("Electrónica").build()
+        );
+
+        com.erp.inventory.dto.AddStockRequest request = com.erp.inventory.dto.AddStockRequest.builder()
+                .quantity(15)
+                .reason("Reposición por OC")
+                .referenceId("PO-202611-0001")
+                .build();
+
+        ProductResponse response = productService.addStock(100L, request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStockQuantity()).isEqualTo(25);
+        verify(productRepository).save(any(Product.class));
+        verify(stockMovementRepository).save(any());
+    }
 }

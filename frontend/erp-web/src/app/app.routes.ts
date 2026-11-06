@@ -4,6 +4,7 @@ import { InventoryComponent } from './features/inventory/inventory.component';
 import { CategoriesComponent } from './features/categories/categories.component';
 import { MovementsComponent } from './features/movements/movements.component';
 import { OrdersComponent } from './features/orders/orders.component';
+import { PurchasesComponent } from './features/purchases/purchases.component';
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
@@ -31,6 +32,12 @@ export const routes: Routes = [
     component: OrdersComponent,
     canActivate: [authGuard],
     title: 'Ventas & Pedidos - ERP Cloud'
+  },
+  {
+    path: 'purchases',
+    component: PurchasesComponent,
+    canActivate: [authGuard],
+    title: 'Compras & Proveedores - ERP Cloud'
   },
   { path: '', redirectTo: 'inventory', pathMatch: 'full' },
   { path: '**', redirectTo: 'inventory' }

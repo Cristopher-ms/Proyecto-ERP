@@ -173,6 +173,32 @@ public class ProductService {
         return mapToResponse(saved);
     }
 
+    @Transactional
+    public ProductResponse addStock(Long id, AddStockRequest request) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + id));
+
+        int prevStock = product.getStockQuantity();
+        int addQty = request.getQuantity();
+        int newStock = prevStock + addQty;
+
+        product.setStockQuantity(newStock);
+        Product saved = productRepository.save(product);
+
+        StockMovement movement = StockMovement.builder()
+                .product(saved)
+                .type(MovementType.IN)
+                .quantity(addQty)
+                .previousStock(prevStock)
+                .newStock(newStock)
+                .reason(request.getReason() != null ? request.getReason() : "Reposición por Compra")
+                .referenceId(request.getReferenceId())
+                .build();
+        stockMovementRepository.save(movement);
+
+        return mapToResponse(saved);
+    }
+
     @Transactional(readOnly = true)
     public InventorySummaryResponse getInventorySummary() {
         long totalProducts = productRepository.countActiveProducts();

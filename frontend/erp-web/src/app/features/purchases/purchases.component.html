@@ -1,0 +1,223 @@
+<div class="purchases-container">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Compras &amp; Proveedores</h1>
+      <span class="live-badge">En Vivo</span>
+      @if (purchaseService.usingMock()) {
+        <span class="demo-badge">Modo Demo</span>
+      }
+    </div>
+    <div class="header-right">
+      <button class="btn-primary" (click)="setTab('new')">
+        &#43; Nueva OC
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Alerta acción ────────────────────────────────────────────────────── -->
+  @if (actionMsg()) {
+    <div [class]="'alert alert-' + actionMsg()!.type">{{ actionMsg()!.text }}</div>
+  }
+
+  <!-- ── KPIs ─────────────────────────────────────────────────────────────── -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <span class="kpi-icon">&#128230;</span>
+      <div class="kpi-info">
+        <span class="kpi-value">{{ summary().totalPurchases }}</span>
+        <span class="kpi-label">Total OCs</span>
+      </div>
+    </div>
+    <div class="kpi-card highlight">
+      <span class="kpi-icon">&#128176;</span>
+      <div class="kpi-info">
+        <span class="kpi-value">{{ formatCurrency(summary().totalAmount) }}</span>
+        <span class="kpi-label">Total Compras</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-icon">&#9203;</span>
+      <div class="kpi-info">
+        <span class="kpi-value">{{ summary().pendingOrders }}</span>
+        <span class="kpi-label">Pendientes</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-icon">&#128200;</span>
+      <div class="kpi-info">
+        <span class="kpi-value">{{ formatCurrency(summary().monthlyAmount) }}</span>
+        <span class="kpi-label">Este Mes</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tabs ──────────────────────────────────────────────────────────────── -->
+  <div class="tab-bar">
+    <button [class.active]="activeTab() === 'orders'"    (click)="setTab('orders')">
+      &#128203; Órdenes de Compra
+    </button>
+    <button [class.active]="activeTab() === 'suppliers'" (click)="setTab('suppliers')">
+      &#127970; Directorio de Proveedores
+    </button>
+    <button [class.active]="activeTab() === 'new'"       (click)="setTab('new')">
+      &#43; Nueva OC
+    </button>
+  </div>
+
+  <!-- ══════════════════════ TAB: ÓRDENES ══════════════════════════════════ -->
+  @if (activeTab() === 'orders') {
+    @if (purchaseService.loading()) {
+      <div class="loading-box">
+        <div class="spinner"></div>
+        <p>Cargando órdenes de compra...</p>
+      </div>
+    } @else if (purchaseService.purchases().length === 0) {
+      <div class="empty-state">
+        <span>&#128230;</span>
+        <p>No hay órdenes de compra. Crea una con el botón <strong>+ Nueva OC</strong>.</p>
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>Número</th>
+              <th>Proveedor</th>
+              <th>Estado</th>
+              <th>Subtotal</th>
+              <th>IGV (18%)</th>
+              <th>Total</th>
+              <th>Entrega Esperada</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (po of purchaseService.purchases(); track po.id) {
+              <tr>
+                <td><strong>{{ po.purchaseNumber }}</strong></td>
+                <td>{{ po.supplier.companyName }}</td>
+                <td><span [class]="'status-badge ' + statusClass(po.status)">{{ statusLabel(po.status) }}</span></td>
+                <td>{{ formatCurrency(po.subtotal) }}</td>
+                <td>{{ formatCurrency(po.taxAmount) }}</td>
+                <td><strong>{{ formatCurrency(po.totalAmount) }}</strong></td>
+                <td>{{ po.expectedDeliveryDate ? (po.expectedDeliveryDate | date:'dd/MM/yyyy') : '—' }}</td>
+                <td class="actions-cell">
+                  @if (po.status === 'DRAFT') {
+                    <button class="btn-approve" (click)="approve(po)">Aprobar</button>
+                  }
+                  @if (po.status === 'APPROVED') {
+                    <button class="btn-receive" (click)="receive(po)">Recibir</button>
+                  }
+                  @if (po.status === 'RECEIVED') {
+                    <span class="done-label">&#10003; Completada</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  <!-- ══════════════════════ TAB: PROVEEDORES ══════════════════════════════ -->
+  @if (activeTab() === 'suppliers') {
+    <div class="search-bar">
+      <input type="text" placeholder="Buscar proveedor por nombre o RUC..."
+             [value]="supplierSearch()"
+             (input)="supplierSearch.set($any($event.target).value)" />
+    </div>
+    <div class="suppliers-grid">
+      @for (s of filteredSuppliers(); track s.id) {
+        <div class="supplier-card">
+          <div class="supplier-header">
+            <h3>{{ s.companyName }}</h3>
+            <span [class]="'status-badge ' + (s.status === 'ACTIVE' ? 'badge-received' : 'badge-cancelled')">
+              {{ s.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}
+            </span>
+          </div>
+          <div class="supplier-details">
+            <p><strong>RUC:</strong> {{ s.taxId }}</p>
+            <p><strong>Contacto:</strong> {{ s.contactName ?? '—' }}</p>
+            <p><strong>Email:</strong> {{ s.email ?? '—' }}</p>
+            <p><strong>Tel:</strong> {{ s.phone ?? '—' }}</p>
+            <p><strong>País:</strong> {{ s.country ?? '—' }}</p>
+            <p><strong>Pago:</strong> {{ s.paymentTerms }}</p>
+          </div>
+          @if (s.notes) {
+            <p class="supplier-notes">{{ s.notes }}</p>
+          }
+        </div>
+      }
+      @if (filteredSuppliers().length === 0) {
+        <div class="empty-state" style="grid-column:1/-1">
+          <span>&#127970;</span>
+          <p>No se encontraron proveedores.</p>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ══════════════════════ TAB: NUEVA OC ═════════════════════════════════ -->
+  @if (activeTab() === 'new') {
+    <div class="form-panel">
+      <h2>Nueva Orden de Compra</h2>
+      <form [formGroup]="newOrderForm" (ngSubmit)="submitNewOrder()">
+
+        <div class="form-section">
+          <h3>Datos Generales</h3>
+          <div class="form-row">
+            <label>Proveedor <span class="required">*</span></label>
+            <select formControlName="supplierId">
+              <option value="">— Seleccionar proveedor —</option>
+              @for (s of purchaseService.suppliers(); track s.id) {
+                <option [value]="s.id">{{ s.companyName }} ({{ s.taxId }})</option>
+              }
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Email Comprador <span class="required">*</span></label>
+            <input type="email" formControlName="buyerEmail" placeholder="compras@empresa.pe" />
+          </div>
+          <div class="form-row">
+            <label>Fecha Entrega Estimada</label>
+            <input type="datetime-local" formControlName="expectedDeliveryDate" />
+          </div>
+          <div class="form-row">
+            <label>Notas</label>
+            <textarea formControlName="notes" rows="3" placeholder="Observaciones de la OC..."></textarea>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3>Línea de Producto</h3>
+          <div class="form-row">
+            <label>SKU <span class="required">*</span></label>
+            <input type="text" formControlName="productSku" placeholder="Ej: LAP-001" />
+          </div>
+          <div class="form-row">
+            <label>Nombre del Producto <span class="required">*</span></label>
+            <input type="text" formControlName="productName" placeholder="Ej: Laptop Dell Inspiron 15" />
+          </div>
+          <div class="form-row">
+            <label>Costo Unitario (S/) <span class="required">*</span></label>
+            <input type="number" formControlName="unitCost" min="0.01" step="0.01" />
+          </div>
+          <div class="form-row">
+            <label>Cantidad <span class="required">*</span></label>
+            <input type="number" formControlName="quantity" min="1" />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="setTab('orders')">Cancelar</button>
+          <button type="submit" class="btn-primary">Crear OC (DRAFT)</button>
+        </div>
+
+      </form>
+    </div>
+  }
+
+</div>

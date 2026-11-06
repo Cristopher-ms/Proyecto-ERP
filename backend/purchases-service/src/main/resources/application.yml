@@ -1,0 +1,84 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: purchases-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:postgresql://localhost:5432/erp_purchases_db}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:erp_user}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:erp_password}}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: ${HIBERNATE_DDL_AUTO:update}
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          lob:
+            non_contextual_creation: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        auto-startup: ${RABBITMQ_ENABLED:false}
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+# URLs de microservicios internos
+erp:
+  services:
+    inventory-url: ${INVENTORY_SERVICE_URL:http://localhost:8082}
+  rabbitmq:
+    enabled: ${RABBITMQ_ENABLED:false}
+    exchange: erp.purchase.exchange
+    queue: erp.inventory.stock-replenish.queue
+    routing-key: stock.replenish
+
+# Resilience4j - Circuit Breaker y Retry
+resilience4j:
+  circuitbreaker:
+    instances:
+      inventoryService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+        slowCallRateThreshold: 100
+        slowCallDurationThreshold: 3s
+  retry:
+    instances:
+      inventoryService:
+        maxAttempts: 3
+        waitDuration: 1s
+        exponentialBackoffMultiplier: 2
+
+# Documentación OpenAPI / Swagger
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
+# Métricas y Health Checks
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
